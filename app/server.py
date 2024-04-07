@@ -15,14 +15,13 @@ from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import HTMLResponse, JSONResponse
 from starlette.staticfiles import StaticFiles
 
-export_file_url = 'https://www.dropbox.com/scl/fi/e8oes6vu6glw1c1iusy2u/imdb_export.pkl?rlkey=a1sngtxywaqikzg5py1yrxd6o&dl=0'
+export_file_url = 'https://www.dropbox.com/scl/fi/e8oes6vu6glw1c1iusy2u/imdb_export.pkl?rlkey=a1sngtxywaqikzg5py1yrxd6o&dl=1'
 export_file_name = 'imdb_export.pkl'
 
 path = Path(__file__).parent
 
 app = Starlette()
 app.add_middleware(CORSMiddleware, allow_origins=['*'], allow_headers=['X-Requested-With', 'Content-Type'])
-app.mount('/static', StaticFiles(directory='app/static'))
 
 
 async def download_file(url, dest):
@@ -37,7 +36,7 @@ async def download_file(url, dest):
 async def setup_learner():
     await download_file(export_file_url, path / export_file_name)
     try:
-        learn = load_learner(path, export_file_name)
+        learn = load_learner(path / export_file_name)
         return learn
     except RuntimeError as e:
         if len(e.args) > 0 and 'CPU-only machine' in e.args[0]:
@@ -54,12 +53,6 @@ learn = loop.run_until_complete(asyncio.gather(*tasks))[0]
 loop.close()
 
 
-@app.route('/')
-async def homepage(request):
-    html_file = path / 'view' / 'index.html'
-    return HTMLResponse(html_file.open().read())
-
-
 @app.route('/analyze', methods=['POST'])
 async def analyze(request):
     # img_data = await request.form()
@@ -71,10 +64,11 @@ async def analyze(request):
     prediction = learn.predict(body['text'])
     print(prediction)
     content = json.dumps(prediction[0])
-    response = Response(content,status_code=200, headers=None, media_type='text/plain')
+    # response = Response(content,status_code=200, headers=None, media_type='application/json')
+    response = JSONResponse({'result': str(prediction)})
     return response
 
 
 if __name__ == '__main__':
     if 'serve' in sys.argv:
-        uvicorn.run(app=app, host='0.0.0.0', port=5000, log_level="info")
+        uvicorn.run(app=app, host='0.0.0.0', port=5500, log_level="info")
