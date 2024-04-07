@@ -1,18 +1,23 @@
+from starlette.applications import Response
+from starlette.responses import JSONResponse
+from starlette.routing import Route
+import json
 import aiohttp
+
 import asyncio
 import uvicorn
 from fastai import *
-from fastai.vision import *
+from fastai.text.all import *
+# from fastai.vision import *
 from io import BytesIO
 from starlette.applications import Starlette
 from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import HTMLResponse, JSONResponse
 from starlette.staticfiles import StaticFiles
 
-export_file_url = 'https://www.dropbox.com/s/6bgq8t6yextloqp/export.pkl?raw=1'
-export_file_name = 'export.pkl'
+export_file_url = 'https://www.dropbox.com/scl/fi/e8oes6vu6glw1c1iusy2u/imdb_export.pkl?rlkey=a1sngtxywaqikzg5py1yrxd6o&dl=0'
+export_file_name = 'imdb_export.pkl'
 
-classes = ['black', 'grizzly', 'teddys']
 path = Path(__file__).parent
 
 app = Starlette()
@@ -57,11 +62,17 @@ async def homepage(request):
 
 @app.route('/analyze', methods=['POST'])
 async def analyze(request):
-    img_data = await request.form()
-    img_bytes = await (img_data['file'].read())
-    img = open_image(BytesIO(img_bytes))
-    prediction = learn.predict(img)[0]
-    return JSONResponse({'result': str(prediction)})
+    # img_data = await request.form()
+    # img_bytes = await (img_data['file'].read())
+    # img = open_image(BytesIO(img_bytes))
+    # prediction = learn.predict(img)[0]
+    # return JSONResponse({'result': str(prediction)})
+    body = await request.json()
+    prediction = learn.predict(body['text'])
+    print(prediction)
+    content = json.dumps(prediction[0])
+    response = Response(content,status_code=200, headers=None, media_type='text/plain')
+    return response
 
 
 if __name__ == '__main__':
